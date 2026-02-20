@@ -70,6 +70,8 @@ const HousePoints = () => {
   const [showRankings, setShowRankings] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [achievements, setAchievements] = useState([]);
+  const [newAchievement, setNewAchievement] = useState(null);
   const [submittedPoints, setSubmittedPoints] = useState({});
   const [showVictoryVideo, setShowVictoryVideo] = useState(false);
   const [victoryHouse, setVictoryHouse] = useState(null);
@@ -106,6 +108,20 @@ const HousePoints = () => {
       } catch (error) {
         console.log('Error loading points:', error);
         setPoints({ Jackson: 0, Fraser: 0, Elliot: 0, Bradman: 0 });
+
+      // Load achievements
+      fetch(SHEET_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getAchievements' })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success') {
+            setAchievements(data.achievements || []);
+          }
+        })
+        .catch(err => console.error('Achievement load error:', err));
       } finally {
         setIsLoading(false);
       }
@@ -173,6 +189,9 @@ const HousePoints = () => {
     setPoints(newPoints);
     savePoints(newPoints);
     setSubmittedPoints(addedPoints);
+      
+      // Check for achievements
+      checkAchievements(points, addedPoints);
     setInputValues({
       Jackson: '',
       Fraser: '',
@@ -188,6 +207,73 @@ const HousePoints = () => {
     }, 3000);
   };
   
+  
+
+  const checkAchievements = (oldPoints, addedPoints) => {
+    houses.forEach(house => {
+      const oldTotal = oldPoints[house.name] || 0;
+      const newTotal = oldTotal + (addedPoints[house.name] || 0);
+      
+      // Check every 100-point threshold
+      for (let threshold = 100; threshold <= 2500; threshold += 100) {
+        if (oldTotal < threshold && newTotal >= threshold) {
+          // This house just crossed this threshold!
+          claimAchievement(threshold, house.name);
+        }
+      }
+    });
+  };
+
+  const claimAchievement = (threshold, houseName) => {
+    const date = new Date().toLocaleDateString();
+    
+    fetch(SHEET_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'claimAchievement',
+        threshold: threshold,
+        house: houseName,
+        date: date
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Show achievement popup
+          setNewAchievement({
+            name: data.achievement,
+            house: houseName,
+            threshold: threshold
+          });
+          
+          // Reload achievements
+          loadAchievements();
+          
+          // Hide popup after 5 seconds
+          setTimeout(() => setNewAchievement(null), 5000);
+        } else if (data.status === 'already_claimed') {
+          console.log(\`Achievement at \${threshold} already claimed by \${data.winner}\`);
+        }
+      })
+      .catch(err => console.error('Achievement claim error:', err));
+  };
+
+  const loadAchievements = () => {
+    fetch(SHEET_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'getAchievements' })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          setAchievements(data.achievements || []);
+        }
+      })
+      .catch(err => console.error('Achievement load error:', err));
+  };
+
   const handleBulkWarningYes = () => {
     setShowBulkWarning(false);
     executeSubmit(pendingSubmit);
@@ -1295,37 +1381,70 @@ const HousePoints = () => {
         {/* Buttons at top */}
         <div style={{
           display: 'flex',
-          gap: '10px',
+          flexDirection: 'column',
+          gap: '15px',
           marginBottom: '20px'
         }}>
+          {/* Row 1: Champions, Quick, Exciting, 1by1 */}
+          <div style={{ display: 'flex', gap: '10px' }}>
           <button
-            onClick={handleSubmit}
+            onClick={() => window.open('https://robsstuff.github.io/Winners/', '_blank')}
             style={{
               flex: 1,
               fontFamily: '"Rajdhani", sans-serif',
               fontSize: '14px',
               fontWeight: '700',
               padding: '10px',
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '10px',
               cursor: 'pointer',
               textTransform: 'uppercase',
               letterSpacing: '1px',
-              boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)',
+              boxShadow: '0 4px 15px rgba(251, 191, 36, 0.3)',
               transition: 'all 0.3s ease'
             }}
             onMouseEnter={(e) => {
               e.target.style.transform = 'translateY(-1px)';
-              e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+              e.target.style.boxShadow = '0 6px 20px rgba(251, 191, 36, 0.4)';
             }}
             onMouseLeave={(e) => {
               e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.3)';
+              e.target.style.boxShadow = '0 4px 15px rgba(251, 191, 36, 0.3)';
             }}
           >
-            Submit
+            🏆 Champions
+          </button>
+
+          <button
+            onClick={() => setCurrentScreen('achievements')}
+            style={{
+              flex: 1,
+              fontFamily: '"Rajdhani", sans-serif',
+              fontSize: '14px',
+              fontWeight: '700',
+              padding: '10px',
+              background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              boxShadow: '0 4px 15px rgba(168, 85, 247, 0.3)',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-1px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(168, 85, 247, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 15px rgba(168, 85, 247, 0.3)';
+            }}
+          >
+            🏅 Achievements
           </button>
 
           <button
@@ -1417,29 +1536,66 @@ const HousePoints = () => {
           >
             1 by 1
           </button>
+          </div>
 
+          {/* Row 2: Battle Royale (left side) */}
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-start' }}>
           <button
             onClick={() => window.open('https://robsstuff.github.io/BR/', '_blank')}
             style={{
               fontFamily: '"Rajdhani", sans-serif',
-              fontSize: 'clamp(16px, 4vw, 24px)',
+              fontSize: '16px',
               fontWeight: '700',
-              padding: '20px 30px',
+              padding: '15px 30px',
               background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '16px',
+              borderRadius: '12px',
               cursor: 'pointer',
               textTransform: 'uppercase',
               letterSpacing: '2px',
               boxShadow: '0 6px 20px rgba(139, 92, 246, 0.4)',
-              transition: 'all 0.3s ease',
-              gridColumn: 'span 2'
+              transition: 'all 0.3s ease'
             }}
           >
             ⚔️ Battle Royale
           </button>
-        </div>
+          </div>
+
+          {/* Row 3: Submit (centered, larger) */}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <button
+            onClick={handleSubmit}
+            style={{
+              fontFamily: '"Rajdhani", sans-serif',
+              fontSize: '20px',
+              fontWeight: '700',
+              padding: '20px 60px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '14px',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '2px',
+              boxShadow: '0 6px 20px rgba(16, 185, 129, 0.4)',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.5)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+            }}
+          >
+            🟢 Submit
+          </button>
+          </div>
+        
+
+                  </div>
 
         {/* Confirmation Tick */}
         {showConfirmation && (
