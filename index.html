@@ -70,8 +70,6 @@ const HousePoints = () => {
   const [showRankings, setShowRankings] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [achievements, setAchievements] = useState([]);
-  const [newAchievement, setNewAchievement] = useState(null);
   const [submittedPoints, setSubmittedPoints] = useState({});
   const [showVictoryVideo, setShowVictoryVideo] = useState(false);
   const [victoryHouse, setVictoryHouse] = useState(null);
@@ -108,20 +106,6 @@ const HousePoints = () => {
       } catch (error) {
         console.log('Error loading points:', error);
         setPoints({ Jackson: 0, Fraser: 0, Elliot: 0, Bradman: 0 });
-
-      // Load achievements
-      fetch(SHEET_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'getAchievements' })
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === 'success') {
-            setAchievements(data.achievements || []);
-          }
-        })
-        .catch(err => console.error('Achievement load error:', err));
       } finally {
         setIsLoading(false);
       }
@@ -189,9 +173,6 @@ const HousePoints = () => {
     setPoints(newPoints);
     savePoints(newPoints);
     setSubmittedPoints(addedPoints);
-      
-      // Check for achievements
-      checkAchievements(points, addedPoints);
     setInputValues({
       Jackson: '',
       Fraser: '',
@@ -207,73 +188,6 @@ const HousePoints = () => {
     }, 3000);
   };
   
-  
-
-  const checkAchievements = (oldPoints, addedPoints) => {
-    houses.forEach(house => {
-      const oldTotal = oldPoints[house.name] || 0;
-      const newTotal = oldTotal + (addedPoints[house.name] || 0);
-      
-      // Check every 100-point threshold
-      for (let threshold = 100; threshold <= 2500; threshold += 100) {
-        if (oldTotal < threshold && newTotal >= threshold) {
-          // This house just crossed this threshold!
-          claimAchievement(threshold, house.name);
-        }
-      }
-    });
-  };
-
-  const claimAchievement = (threshold, houseName) => {
-    const date = new Date().toLocaleDateString();
-    
-    fetch(SHEET_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'claimAchievement',
-        threshold: threshold,
-        house: houseName,
-        date: date
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'success') {
-          // Show achievement popup
-          setNewAchievement({
-            name: data.achievement,
-            house: houseName,
-            threshold: threshold
-          });
-          
-          // Reload achievements
-          loadAchievements();
-          
-          // Hide popup after 5 seconds
-          setTimeout(() => setNewAchievement(null), 5000);
-        } else if (data.status === 'already_claimed') {
-          console.log(\`Achievement at \${threshold} already claimed by \${data.winner}\`);
-        }
-      })
-      .catch(err => console.error('Achievement claim error:', err));
-  };
-
-  const loadAchievements = () => {
-    fetch(SHEET_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'getAchievements' })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'success') {
-          setAchievements(data.achievements || []);
-        }
-      })
-      .catch(err => console.error('Achievement load error:', err));
-  };
-
   const handleBulkWarningYes = () => {
     setShowBulkWarning(false);
     executeSubmit(pendingSubmit);
@@ -1415,36 +1329,6 @@ const HousePoints = () => {
             }}
           >
             🏆 Champions
-          </button>
-
-          <button
-            onClick={() => setCurrentScreen('achievements')}
-            style={{
-              flex: 1,
-              fontFamily: '"Rajdhani", sans-serif',
-              fontSize: '14px',
-              fontWeight: '700',
-              padding: '10px',
-              background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              boxShadow: '0 4px 15px rgba(168, 85, 247, 0.3)',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-1px)';
-              e.target.style.boxShadow = '0 6px 20px rgba(168, 85, 247, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 15px rgba(168, 85, 247, 0.3)';
-            }}
-          >
-            🏅 Achievements
           </button>
 
           <button
