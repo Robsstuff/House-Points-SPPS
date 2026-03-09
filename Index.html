@@ -223,7 +223,6 @@ const HousePoints = () => {
     setPointHistory(prev => [histEntry, ...prev]);
     fetch(GOOGLE_SHEET_URL, {
       method: 'POST',
-      mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'logHistory', ...histEntry })
     }).catch(() => {});
