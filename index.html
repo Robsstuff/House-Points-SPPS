@@ -524,7 +524,7 @@ function App() {
               }}, 'IN '+posLabels[revealStep]),
               React.createElement('div', {style:{
                 fontFamily:"'Orbitron',sans-serif",fontSize:'3.5rem',fontWeight:900,
-                color:current.color,animation:'pulse 1.5s infinite'
+                color:'#fff',animation:'pulse 1.5s infinite'
               }}, pts[current.key]||0),
               React.createElement('div', {style:{
                 fontFamily:"'Rajdhani',sans-serif",fontSize:'1.3rem',color:'#94a3b8',marginTop:4,letterSpacing:2
@@ -537,47 +537,24 @@ function App() {
                 fontFamily:"'Orbitron',sans-serif",fontSize:'1rem',
                 color:posColors[revealStep],letterSpacing:4,marginBottom:12,textTransform:'uppercase'
               }}, posLabels[revealStep]),
-              is4th
-                ? React.createElement('video', {src:current.sadVideo, className:'reveal-mascot',
-                    autoPlay:true, muted:true, loop:true, playsInline:true,
-                    style:{animation:'popIn 0.6s 0.2s both'}})
-                : React.createElement('img', {src:current.img, className:'reveal-mascot', alt:current.label,
-                    style:{animation:'popIn 0.6s 0.2s both'}}),
+              React.createElement('video', {
+                ref:oboVideoRef,
+                src: is4th ? current.sadVideo : current.winVideo,
+                autoPlay:true, muted:true, playsInline:true,
+                loop: is1st,
+                style:{width:'100%',maxWidth:400,borderRadius:12,marginBottom:8,animation:'popIn 0.6s 0.2s both'},
+                onEnded: is1st ? undefined : function(){
+                  setRevealStep(function(s){ return s+1; });
+                  setRevealPhase('announce');
+                  setVideoLoopCount(0);
+                }
+              }),
               React.createElement('div', {className:'reveal-house',
-                style:{color:current.color,animation:'fadeInUp 0.5s 0.3s both'}
+                style:{color:'#fff',animation:'fadeInUp 0.5s 0.3s both'}
               }, current.label),
               React.createElement('div', {className:'reveal-pts',
                 style:{animation:'fadeInUp 0.5s 0.5s both'}
-              }, (pts[current.key]||0)+' pts'),
-              is1st
-                ? React.createElement(React.Fragment, null,
-                    React.createElement('video', {
-                      ref:oboVideoRef, src:current.winVideo,
-                      autoPlay:true, muted:true, playsInline:true,
-                      style:{width:'100%',maxWidth:380,borderRadius:12,marginTop:16},
-                      onEnded:function(){
-                        setVideoLoopCount(function(c){
-                          var next=c+1;
-                          if(next<2 && oboVideoRef.current) oboVideoRef.current.play();
-                          return next;
-                        });
-                      }
-                    }),
-                    videoLoopCount>=2 && React.createElement('button', {
-                      className:'btn btn-green',
-                      style:{marginTop:20,padding:'14px 40px',fontSize:'1.1rem'},
-                      onClick:function(){ setRevealStep(0); setRevealPhase('announce'); setVideoLoopCount(0); setScreen('input'); }
-                    }, String.fromCodePoint(0x1F3E0)+' Done!')
-                  )
-                : React.createElement('button', {
-                    className:'btn btn-purple',
-                    style:{marginTop:28,padding:'14px 40px',fontSize:'1.1rem'},
-                    onClick:function(){
-                      setRevealStep(function(s){ return s+1; });
-                      setRevealPhase('announce');
-                      setVideoLoopCount(0);
-                    }
-                  }, 'Reveal Next '+String.fromCodePoint(0x25B6))
+              }, (pts[current.key]||0)+' pts')
             )
       )
     );
