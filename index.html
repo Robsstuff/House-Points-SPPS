@@ -499,12 +499,38 @@ function App() {
   }
 
   if(screen==='onebyone') {
+    var posLabels = ['4TH PLACE','3RD PLACE','2ND PLACE',String.fromCodePoint(0x1F3C6)+' 1ST PLACE'];
+    var posColors = ['#94a3b8','#cd7f32','#c0c0c0','#f59e0b'];
+
+    // Final standings summary screen
+    if(revealStep===4) return (
+      React.createElement('div', {className:'app'},
+        React.createElement('button', {className:'btn btn-back', onClick:function(){
+          setRevealStep(0); setRevealPhase('announce'); setVideoLoopCount(0); setScreen('input');
+        }}, String.fromCodePoint(0x2190)+' Back'),
+        React.createElement('div', {className:'screen-title', style:{fontSize:'1.4rem',marginBottom:20}},
+          String.fromCodePoint(0x1F3C6)+' FINAL STANDINGS'
+        ),
+        React.createElement('ul', {className:'rankings-list'},
+          ranked.map(function(house,i){
+            return React.createElement('li', {
+              key:house.key,
+              style:{background:house.color+'22',border:'1px solid '+house.color,animation:'fadeInUp 0.5s ease-out '+(i*0.15)+'s both'}
+            },
+              React.createElement('span', {className:'rank-num'}, MEDALS[i]),
+              React.createElement('img', {src:house.img, style:{width:44,height:44,objectFit:'contain'}}),
+              React.createElement('span', {style:{color:house.color,fontSize:'1.2rem',flex:1}}, house.label),
+              React.createElement('span', {className:'rank-pts', style:{color:house.color,fontSize:'1.6rem'}}, pts[house.key]||0)
+            );
+          })
+        )
+      )
+    );
+
     var order = ranked.slice().reverse();
     var current = order[revealStep];
     var is4th = revealStep===0;
     var is1st = revealStep===3;
-    var posLabels = ['4TH PLACE','3RD PLACE','2ND PLACE',String.fromCodePoint(0x1F3C6)+' 1ST PLACE'];
-    var posColors = ['#94a3b8','#cd7f32','#c0c0c0','#f59e0b'];
     return React.createElement('div', {className:'app'},
       React.createElement('button', {className:'btn btn-back', onClick:function(){
         setRevealStep(0); setRevealPhase('announce'); setVideoLoopCount(0); setScreen('input');
@@ -537,9 +563,8 @@ function App() {
                 ref:oboVideoRef,
                 src: is4th ? current.sadVideo : current.winVideo,
                 autoPlay:true, muted:true, playsInline:true,
-                loop: is1st,
                 style:{width:'100%',maxWidth:400,borderRadius:12,marginBottom:8,animation:'popIn 0.6s 0.2s both'},
-                onEnded: is1st ? undefined : function(){
+                onEnded: function(){
                   setRevealStep(function(s){ return s+1; });
                   setRevealPhase('announce');
                   setVideoLoopCount(0);
