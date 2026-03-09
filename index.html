@@ -253,7 +253,7 @@ const HousePoints = () => {
           // Hide popup after 5 seconds
           setTimeout(() => setNewAchievement(null), 5000);
         } else if (data.status === 'already_claimed') {
-          console.log(\`Achievement at \${threshold} already claimed by \${data.winner}\`);
+          console.log('Achievement at ' + threshold + ' already claimed by ' + data.winner);
         }
       })
       .catch(err => console.error('Achievement claim error:', err));
