@@ -33,7 +33,8 @@
     .house-card-fraser{background:linear-gradient(135deg,#1e3a5f,#1e40af);border:1px solid #3b82f6}
     .house-card-elliot{background:linear-gradient(135deg,#78350f,#92400e);border:1px solid #f59e0b}
     .house-card-bradman{background:linear-gradient(135deg,#7f1d1d,#991b1b);border:1px solid #ef4444}
-    .mascot-img{width:64px;height:64px;object-fit:contain;border-radius:8px;flex-shrink:0}
+    .mascot-img{width:64px;height:64px;object-fit:contain;flex-shrink:0;background:transparent}
+    img.mascot-img{mix-blend-mode:multiply}
     .house-info{flex:1;min-width:0}
     .house-name{font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700}
     .house-pts{font-size:1.6rem;font-weight:700;line-height:1}
@@ -165,10 +166,18 @@ function App() {
   var pwMode = state13[0]; var setPwMode = state13[1];
   var state14 = useState('');
   var pwInput = state14[0]; var setPwInput = state14[1];
+  var state15 = useState('announce');
+  var revealPhase = state15[0]; var setRevealPhase = state15[1];
+  var state16 = useState(0);
+  var videoLoopCount = state16[0]; var setVideoLoopCount = state16[1];
+  var state17 = useState({Jackson:0,Fraser:0,Elliot:0,Bradman:0});
+  var displayPts = state17[0]; var setDisplayPts = state17[1];
   var barRef = useRef(null);
   var lineRef = useRef(null);
   var barChart = useRef(null);
   var lineChart = useRef(null);
+  var revealTimer = useRef(null);
+  var oboVideoRef = useRef(null);
 
   var loadData = useCallback(function() {
     fetch(GOOGLE_SHEET_URL)
@@ -253,6 +262,40 @@ function App() {
 
   var ranked = getRanked(pts);
 
+  // Count-up effect for exciting totals (30 seconds)
+  useEffect(function(){
+    if(screen!=='exciting') return;
+    setDisplayPts({Jackson:0,Fraser:0,Elliot:0,Bradman:0});
+    var duration = 30000;
+    var startTime = Date.now();
+    var targets = {Jackson:pts.Jackson||0,Fraser:pts.Fraser||0,Elliot:pts.Elliot||0,Bradman:pts.Bradman||0};
+    var interval = setInterval(function(){
+      var elapsed = Date.now() - startTime;
+      var progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      var eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayPts({
+        Jackson: Math.round(targets.Jackson * eased),
+        Fraser:  Math.round(targets.Fraser * eased),
+        Elliot:  Math.round(targets.Elliot * eased),
+        Bradman: Math.round(targets.Bradman * eased),
+      });
+      if(progress >= 1) clearInterval(interval);
+    }, 100);
+    return function(){ clearInterval(interval); };
+  }, [screen]);
+
+  // One-by-one reveal phase timer (5 second announce delay)
+  useEffect(function(){
+    if(screen!=='onebyone') return;
+    if(revealPhase!=='announce') return;
+    if(revealTimer.current) clearTimeout(revealTimer.current);
+    revealTimer.current = setTimeout(function(){
+      setRevealPhase('reveal');
+    }, 5000);
+    return function(){ if(revealTimer.current) clearTimeout(revealTimer.current); };
+  }, [screen, revealStep, revealPhase]);
+
   useEffect(function(){
     if(screen!=='bar'||!barRef.current) return;
     if(barChart.current) barChart.current.destroy();
@@ -311,19 +354,17 @@ function App() {
     React.createElement('div', {className:'app'},
       React.createElement('div', {className:'header'}, 'HOUSE POINTS'),
       loading && React.createElement('div', {className:'loading'}, 'Loading...'),
-      HOUSES.map(function(house){
-        var rank = ranked.findIndex(function(r){ return r.key===house.key; });
+      ranked.map(function(house, rank){
         var is4th = rank===3;
         var latestAch = getLatestAch(achievements, house.key);
         var lastAchObj = achievements.filter(function(a){ return a.house===house.key; }).sort(function(a,b){ return Number(b.threshold)-Number(a.threshold); })[0];
         return React.createElement('div', {key:house.key, className:'house-card '+house.card},
-          React.createElement('img', {src: house.img, className:'mascot-img', alt:house.label}),
+          is4th
+            ? React.createElement('video', {src:house.sadVideo, className:'mascot-img', autoPlay:true, muted:true, loop:true, playsInline:true})
+            : React.createElement('img', {src:house.img, className:'mascot-img', alt:house.label}),
           React.createElement('div', {className:'house-info'},
             React.createElement('div', {className:'house-name'},
               house.label, latestAch ? ' '+latestAch : ''
-            ),
-            React.createElement('div', {className:'house-pts', style:{color:house.color}},
-              (pts[house.key]||0)+' pts'
             ),
             latestAch && React.createElement('div', {className:'house-ach'},
               'Latest: '+latestAch+' at '+(lastAchObj ? lastAchObj.threshold : '')+' pts'
@@ -342,7 +383,7 @@ function App() {
       React.createElement('div', {className:'nav-grid', style:{marginTop:12}},
         React.createElement('button', {className:'btn btn-blue', onClick:function(){ setScreen('quick'); }}, String.fromCodePoint(0x1F4CA)+' Quick Totals'),
         React.createElement('button', {className:'btn btn-purple', onClick:function(){ setScreen('exciting'); }}, String.fromCodePoint(0x1F389)+' Exciting Totals'),
-        React.createElement('button', {className:'btn btn-orange', onClick:function(){ setRevealStep(0); setScreen('onebyone'); }}, '1'+String.fromCodePoint(0xFE0F)+String.fromCodePoint(0x20E3)+' One By One'),
+        React.createElement('button', {className:'btn btn-orange', onClick:function(){ setRevealStep(0); setRevealPhase('announce'); setVideoLoopCount(0); setScreen('onebyone'); }}, '1'+String.fromCodePoint(0xFE0F)+String.fromCodePoint(0x20E3)+' One By One'),
         React.createElement('button', {className:'btn btn-teal', onClick:function(){ setScreen('achievements'); }}, String.fromCodePoint(0x1F3C6)+' Achievements'),
         React.createElement('button', {className:'btn btn-yellow', onClick:function(){ setScreen('bar'); }}, String.fromCodePoint(0x1F4CA)+' Bar Graph'),
         React.createElement('button', {className:'btn btn-green', onClick:function(){ setScreen('line'); }}, String.fromCodePoint(0x1F4C8)+' Line Graph'),
@@ -397,6 +438,15 @@ function App() {
             React.createElement('span', {className:'rank-pts', style:{color:house.color}}, pts[house.key]||0)
           );
         })
+      ),
+      React.createElement('div', {style:{marginTop:16,textAlign:'center'}},
+        React.createElement('div', {style:{fontFamily:"'Orbitron',sans-serif",fontSize:'1rem',color:ranked[0].color,fontWeight:900,marginBottom:8,letterSpacing:2}},
+          String.fromCodePoint(0x1F3C6)+' '+ranked[0].label+' LEADS!'
+        ),
+        React.createElement('video', {
+          src:ranked[0].winVideo, autoPlay:true, muted:true, loop:true, playsInline:true,
+          style:{width:'100%',borderRadius:12,maxHeight:260,objectFit:'contain'}
+        })
       )
     )
   );
@@ -409,7 +459,7 @@ function App() {
       React.createElement('div', {className:'screen-title', style:{fontSize:'1.3rem',marginBottom:20}}, String.fromCodePoint(0x1F389)+' EXCITING TOTALS'),
       React.createElement('div', null,
         ranked.map(function(house,i){
-          var pct = Math.round(((pts[house.key]||0)/maxPts)*100);
+          var pct = Math.round(((displayPts[house.key]||0)/maxPts)*100);
           return React.createElement('div', {
             key:house.key,
             style:{
@@ -421,7 +471,7 @@ function App() {
               React.createElement('span', {style:{fontSize:'1.6rem',width:36}}, MEDALS[i]),
               React.createElement('img', {src:house.img, style:{width:44,height:44,objectFit:'contain'}}),
               React.createElement('span', {style:{color:house.color,fontFamily:"'Orbitron',sans-serif",fontSize:'1.1rem',fontWeight:700,flex:1}}, house.label),
-              React.createElement('span', {style:{color:house.color,fontFamily:"'Orbitron',sans-serif",fontSize:'1.4rem',fontWeight:900}}, pts[house.key]||0)
+              React.createElement('span', {style:{color:house.color,fontFamily:"'Orbitron',sans-serif",fontSize:'1.4rem',fontWeight:900}}, displayPts[house.key]||0)
             ),
             React.createElement('div', {style:{background:'#1e293b',borderRadius:8,height:22,overflow:'hidden',border:'1px solid '+house.color+'44'}},
               React.createElement('div', {
@@ -430,8 +480,7 @@ function App() {
                   width:pct+'%',
                   background:'linear-gradient(90deg,'+house.dark+','+house.color+')',
                   borderRadius:8,
-                  transition:'width 1.2s cubic-bezier(0.22,1,0.36,1)',
-                  animation:'barGrow 1.4s '+( i*0.15 )+'s both'
+                  transition:'width 0.2s ease-out'
                 }
               })
             )
@@ -453,56 +502,79 @@ function App() {
   if(screen==='onebyone') {
     var order = ranked.slice().reverse();
     var current = order[revealStep];
-    var is4th = revealStep === 0;
-    var posLabels = ['4TH PLACE','3RD PLACE','2ND PLACE','1ST PLACE '+String.fromCodePoint(0x1F3C6)];
-    var posColors = ['#94a3b8','#cd7f32','#94a3b8','#f59e0b'];
+    var is4th = revealStep===0;
+    var is1st = revealStep===3;
+    var posLabels = ['4TH PLACE','3RD PLACE','2ND PLACE',String.fromCodePoint(0x1F3C6)+' 1ST PLACE'];
+    var posColors = ['#94a3b8','#cd7f32','#c0c0c0','#f59e0b'];
     return React.createElement('div', {className:'app'},
-      React.createElement('button', {className:'btn btn-back', onClick:function(){ setRevealStep(0); setShowVideo(false); setScreen('input'); }}, String.fromCodePoint(0x2190)+' Back'),
+      React.createElement('button', {className:'btn btn-back', onClick:function(){
+        setRevealStep(0); setRevealPhase('announce'); setVideoLoopCount(0); setScreen('input');
+      }}, String.fromCodePoint(0x2190)+' Back'),
       React.createElement('div', {className:'reveal-screen'},
-        !showVideo
-          ? React.createElement('div', {
-              key:revealStep,
+        revealPhase==='announce'
+          ? React.createElement('div', {key:'announce-'+revealStep,
+              style:{textAlign:'center',animation:'fadeInUp 0.6s ease-out both',width:'100%'}
+            },
+              React.createElement('div', {style:{
+                fontFamily:"'Orbitron',sans-serif",fontSize:'1.3rem',
+                color:posColors[revealStep],letterSpacing:3,marginBottom:28,textTransform:'uppercase'
+              }}, 'IN '+posLabels[revealStep]),
+              React.createElement('div', {style:{
+                fontFamily:"'Orbitron',sans-serif",fontSize:'3.5rem',fontWeight:900,
+                color:current.color,animation:'pulse 1.5s infinite'
+              }}, pts[current.key]||0),
+              React.createElement('div', {style:{
+                fontFamily:"'Rajdhani',sans-serif",fontSize:'1.3rem',color:'#94a3b8',marginTop:4,letterSpacing:2
+              }}, 'POINTS')
+            )
+          : React.createElement('div', {key:'reveal-'+revealStep,
               style:{textAlign:'center',animation:'fadeInUp 0.5s ease-out both',width:'100%'}
             },
               React.createElement('div', {style:{
-                fontFamily:"'Orbitron',sans-serif",
-                fontSize:'1rem',
-                color: posColors[revealStep],
-                letterSpacing:4,
-                marginBottom:12,
-                textTransform:'uppercase'
+                fontFamily:"'Orbitron',sans-serif",fontSize:'1rem',
+                color:posColors[revealStep],letterSpacing:4,marginBottom:12,textTransform:'uppercase'
               }}, posLabels[revealStep]),
-              React.createElement('img', {
-                src: current.img,
-                className:'reveal-mascot',
-                alt:current.label,
-                style:{animation:'popIn 0.6s 0.2s both'}
-              }),
-              React.createElement('div', {
-                className:'reveal-house',
+              is4th
+                ? React.createElement('video', {src:current.sadVideo, className:'reveal-mascot',
+                    autoPlay:true, muted:true, loop:true, playsInline:true,
+                    style:{animation:'popIn 0.6s 0.2s both'}})
+                : React.createElement('img', {src:current.img, className:'reveal-mascot', alt:current.label,
+                    style:{animation:'popIn 0.6s 0.2s both'}}),
+              React.createElement('div', {className:'reveal-house',
                 style:{color:current.color,animation:'fadeInUp 0.5s 0.3s both'}
               }, current.label),
-              React.createElement('div', {
-                className:'reveal-pts',
+              React.createElement('div', {className:'reveal-pts',
                 style:{animation:'fadeInUp 0.5s 0.5s both'}
-              }, (pts[current.key]||0)+' points'),
-              revealStep < 3
-                ? React.createElement('button', {
+              }, (pts[current.key]||0)+' pts'),
+              is1st
+                ? React.createElement(React.Fragment, null,
+                    React.createElement('video', {
+                      ref:oboVideoRef, src:current.winVideo,
+                      autoPlay:true, muted:true, playsInline:true,
+                      style:{width:'100%',maxWidth:380,borderRadius:12,marginTop:16},
+                      onEnded:function(){
+                        setVideoLoopCount(function(c){
+                          var next=c+1;
+                          if(next<2 && oboVideoRef.current) oboVideoRef.current.play();
+                          return next;
+                        });
+                      }
+                    }),
+                    videoLoopCount>=2 && React.createElement('button', {
+                      className:'btn btn-green',
+                      style:{marginTop:20,padding:'14px 40px',fontSize:'1.1rem'},
+                      onClick:function(){ setRevealStep(0); setRevealPhase('announce'); setVideoLoopCount(0); setScreen('input'); }
+                    }, String.fromCodePoint(0x1F3E0)+' Done!')
+                  )
+                : React.createElement('button', {
                     className:'btn btn-purple',
                     style:{marginTop:28,padding:'14px 40px',fontSize:'1.1rem'},
-                    onClick:function(){ setRevealStep(function(s){ return s+1; }); }
+                    onClick:function(){
+                      setRevealStep(function(s){ return s+1; });
+                      setRevealPhase('announce');
+                      setVideoLoopCount(0);
+                    }
                   }, 'Reveal Next '+String.fromCodePoint(0x25B6))
-                : React.createElement('button', {
-                    className:'btn btn-green',
-                    style:{marginTop:28,padding:'14px 40px',fontSize:'1.1rem',animation:'pulse 1s infinite'},
-                    onClick:function(){ setVictoryHouse(current); setShowVideo(true); }
-                  }, String.fromCodePoint(0x1F3AC)+' PLAY VICTORY VIDEO!')
-            )
-          : React.createElement('div', {className:'victory-overlay', onClick:function(){ setShowVideo(false); }},
-              React.createElement('video', {src:victoryHouse && victoryHouse.winVideo, autoPlay:true, loop:true, style:{maxWidth:'100%',maxHeight:'80vh'}}),
-              React.createElement('div', {style:{color:'#fff',marginTop:12,fontFamily:"'Orbitron',sans-serif",fontSize:'1.3rem'}},
-                (victoryHouse ? victoryHouse.label : '')+' WINS! (tap to close)'
-              )
             )
       )
     );
