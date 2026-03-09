@@ -33,8 +33,7 @@
     .house-card-fraser{background:linear-gradient(135deg,#1e3a5f,#1e40af);border:1px solid #3b82f6}
     .house-card-elliot{background:linear-gradient(135deg,#78350f,#92400e);border:1px solid #f59e0b}
     .house-card-bradman{background:linear-gradient(135deg,#7f1d1d,#991b1b);border:1px solid #ef4444}
-    .mascot-img{width:64px;height:64px;object-fit:contain;flex-shrink:0;background:transparent}
-    img.mascot-img{mix-blend-mode:multiply}
+    .mascot-img{width:64px;height:64px;object-fit:contain;border-radius:8px;flex-shrink:0;background:#fff}
     .house-info{flex:1;min-width:0}
     .house-name{font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700}
     .house-pts{font-size:1.6rem;font-weight:700;line-height:1}
@@ -172,6 +171,8 @@ function App() {
   var videoLoopCount = state16[0]; var setVideoLoopCount = state16[1];
   var state17 = useState({Jackson:0,Fraser:0,Elliot:0,Bradman:0});
   var displayPts = state17[0]; var setDisplayPts = state17[1];
+  var state18 = useState(0);
+  var animProgress = state18[0]; var setAnimProgress = state18[1];
   var barRef = useRef(null);
   var lineRef = useRef(null);
   var barChart = useRef(null);
@@ -266,14 +267,15 @@ function App() {
   useEffect(function(){
     if(screen!=='exciting') return;
     setDisplayPts({Jackson:0,Fraser:0,Elliot:0,Bradman:0});
+    setAnimProgress(0);
     var duration = 30000;
     var startTime = Date.now();
     var targets = {Jackson:pts.Jackson||0,Fraser:pts.Fraser||0,Elliot:pts.Elliot||0,Bradman:pts.Bradman||0};
     var interval = setInterval(function(){
       var elapsed = Date.now() - startTime;
       var progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
       var eased = 1 - Math.pow(1 - progress, 3);
+      setAnimProgress(eased);
       setDisplayPts({
         Jackson: Math.round(targets.Jackson * eased),
         Fraser:  Math.round(targets.Fraser * eased),
@@ -459,7 +461,8 @@ function App() {
       React.createElement('div', {className:'screen-title', style:{fontSize:'1.3rem',marginBottom:20}}, String.fromCodePoint(0x1F389)+' EXCITING TOTALS'),
       React.createElement('div', null,
         ranked.map(function(house,i){
-          var pct = Math.round(((displayPts[house.key]||0)/maxPts)*100);
+          var finalPct = Math.round(((pts[house.key]||0)/maxPts)*100);
+          var pct = finalPct * animProgress;
           return React.createElement('div', {
             key:house.key,
             style:{
