@@ -264,24 +264,18 @@ function App() {
   var ranked = getRanked(pts);
 
   // Count-up effect for exciting totals (30 seconds)
+  // animProgress tracks current point count 0→maxPts; each bar stops independently at its total
   useEffect(function(){
     if(screen!=='exciting') return;
-    setDisplayPts({Jackson:0,Fraser:0,Elliot:0,Bradman:0});
     setAnimProgress(0);
     var duration = 30000;
     var startTime = Date.now();
-    var targets = {Jackson:pts.Jackson||0,Fraser:pts.Fraser||0,Elliot:pts.Elliot||0,Bradman:pts.Bradman||0};
+    var maxPtsVal = Math.max(pts.Jackson||0, pts.Fraser||0, pts.Elliot||0, pts.Bradman||0) || 1;
     var interval = setInterval(function(){
       var elapsed = Date.now() - startTime;
       var progress = Math.min(elapsed / duration, 1);
       var eased = 1 - Math.pow(1 - progress, 3);
-      setAnimProgress(eased);
-      setDisplayPts({
-        Jackson: Math.round(targets.Jackson * eased),
-        Fraser:  Math.round(targets.Fraser * eased),
-        Elliot:  Math.round(targets.Elliot * eased),
-        Bradman: Math.round(targets.Bradman * eased),
-      });
+      setAnimProgress(maxPtsVal * eased);
       if(progress >= 1) clearInterval(interval);
     }, 100);
     return function(){ clearInterval(interval); };
@@ -461,8 +455,8 @@ function App() {
       React.createElement('div', {className:'screen-title', style:{fontSize:'1.3rem',marginBottom:20}}, String.fromCodePoint(0x1F389)+' EXCITING TOTALS'),
       React.createElement('div', null,
         ranked.map(function(house,i){
-          var finalPct = Math.round(((pts[house.key]||0)/maxPts)*100);
-          var pct = finalPct * animProgress;
+          var currentVal = Math.min(Math.round(animProgress), pts[house.key]||0);
+          var pct = (currentVal / maxPts) * 100;
           return React.createElement('div', {
             key:house.key,
             style:{
@@ -474,7 +468,7 @@ function App() {
               React.createElement('span', {style:{fontSize:'1.6rem',width:36}}, MEDALS[i]),
               React.createElement('img', {src:house.img, style:{width:44,height:44,objectFit:'contain'}}),
               React.createElement('span', {style:{color:house.color,fontFamily:"'Orbitron',sans-serif",fontSize:'1.1rem',fontWeight:700,flex:1}}, house.label),
-              React.createElement('span', {style:{color:house.color,fontFamily:"'Orbitron',sans-serif",fontSize:'1.4rem',fontWeight:900}}, displayPts[house.key]||0)
+              React.createElement('span', {style:{color:house.color,fontFamily:"'Orbitron',sans-serif",fontSize:'1.4rem',fontWeight:900}}, currentVal)
             ),
             React.createElement('div', {style:{background:'#1e293b',borderRadius:8,height:22,overflow:'hidden',border:'1px solid '+house.color+'44'}},
               React.createElement('div', {
