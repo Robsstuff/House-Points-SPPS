@@ -108,13 +108,9 @@ const HousePoints = () => {
         };
         
         setPoints(loadedPoints);
-      // Load achievements
+      // Load achievements (GET avoids CORS preflight)
       try {
-        const achResp = await fetch(GOOGLE_SHEET_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'getAchievements' })
-        });
+        const achResp = await fetch(GOOGLE_SHEET_URL + '?action=getAchievements');
         const achData = await achResp.json();
         if (achData.status === 'success') {
           setAchievements(achData.achievements || []);
@@ -123,13 +119,9 @@ const HousePoints = () => {
         console.log('Achievement load error:', achErr);
       }
 
-      // Load history
+      // Load history (GET avoids CORS preflight)
       try {
-        const histResp = await fetch(GOOGLE_SHEET_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'getHistory' })
-        });
+        const histResp = await fetch(GOOGLE_SHEET_URL + '?action=getHistory');
         const histData = await histResp.json();
         if (histData.status === 'success') {
           setPointHistory(histData.history || []);
@@ -262,16 +254,8 @@ const HousePoints = () => {
   const claimAchievement = (threshold, houseName) => {
     const date = new Date().toLocaleDateString();
     
-    fetch(GOOGLE_SHEET_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'claimAchievement',
-        threshold: threshold,
-        house: houseName,
-        date: date
-      })
-    })
+    const claimParams = new URLSearchParams({ action: 'claimAchievement', threshold: threshold, house: houseName, date: date });
+    fetch(GOOGLE_SHEET_URL + '?' + claimParams)
       .then(res => res.json())
       .then(data => {
         if (data.status === 'success') {
@@ -295,11 +279,7 @@ const HousePoints = () => {
   };
 
   const loadAchievements = () => {
-    fetch(GOOGLE_SHEET_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'getAchievements' })
-    })
+    fetch(GOOGLE_SHEET_URL + '?action=getAchievements')
       .then(res => res.json())
       .then(data => {
         if (data.status === 'success') {
