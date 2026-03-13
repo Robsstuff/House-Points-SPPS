@@ -218,7 +218,7 @@ function App() {
     var updateParams = 'action=update&Jackson='+newPts.Jackson+'&Fraser='+newPts.Fraser+'&Elliot='+newPts.Elliot+'&Bradman='+newPts.Bradman;
     fetch(GOOGLE_SHEET_URL+'?'+updateParams).catch(function(){});
 
-    var date = new Date().toLocaleDateString('en-AU');
+    var _d=new Date(); var date=String(_d.getDate()).padStart(2,'0')+'/'+String(_d.getMonth()+1).padStart(2,'0')+'/'+_d.getFullYear();
     var histParams = 'action=logHistory&date='+encodeURIComponent(date)
       +'&added_Jackson='+(added.Jackson||0)+'&added_Fraser='+(added.Fraser||0)
       +'&added_Elliot='+(added.Elliot||0)+'&added_Bradman='+(added.Bradman||0)
@@ -352,19 +352,12 @@ function App() {
       loading && React.createElement('div', {className:'loading'}, 'Loading...'),
       HOUSES.slice().sort(function(a,b){ return a.label.localeCompare(b.label); }).map(function(house){
         var is4th = house.key === ranked[3].key;
-        var latestAch = getLatestAch(achievements, house.key);
-        var lastAchObj = achievements.filter(function(a){ return a.house===house.key; }).sort(function(a,b){ return Number(b.threshold)-Number(a.threshold); })[0];
         return React.createElement('div', {key:house.key, className:'house-card '+house.card},
           is4th
             ? React.createElement('video', {src:house.sadVideo, className:'mascot-img', autoPlay:true, muted:true, loop:true, playsInline:true})
             : React.createElement('img', {src:house.img, className:'mascot-img', alt:house.label}),
           React.createElement('div', {className:'house-info'},
-            React.createElement('div', {className:'house-name'},
-              house.label, latestAch ? ' '+latestAch : ''
-            ),
-            latestAch && React.createElement('div', {className:'house-ach'},
-              'Latest: '+latestAch+' at '+(lastAchObj ? lastAchObj.threshold : '')+' pts'
-            )
+            React.createElement('div', {className:'house-name'}, house.label)
           ),
           React.createElement('input', {
             className:'points-input',
@@ -384,7 +377,7 @@ function App() {
         React.createElement('button', {className:'btn btn-yellow', onClick:function(){ setScreen('bar'); }}, String.fromCodePoint(0x1F4CA)+' Bar Graph'),
         React.createElement('button', {className:'btn btn-green', onClick:function(){ setScreen('line'); }}, String.fromCodePoint(0x1F4C8)+' Line Graph'),
         React.createElement('a', {className:'btn btn-red', href:'https://robsstuff.github.io/BR/', target:'_blank', rel:'noopener noreferrer'}, String.fromCodePoint(0x2694)+String.fromCodePoint(0xFE0F)+' Battle Royale'),
-        React.createElement('a', {className:'btn btn-slate', href:'https://robsstuff.github.io/Winners/', target:'_blank', rel:'noopener noreferrer'}, String.fromCodePoint(0x1F3C5)+' War Cries')
+        React.createElement('a', {className:'btn btn-slate', href:'https://robsstuff.github.io/Winners/', target:'_blank', rel:'noopener noreferrer'}, String.fromCodePoint(0x1F3C5)+' Historical Winners')
       ),
       React.createElement('div', {className:'password-row'},
         !pwMode
