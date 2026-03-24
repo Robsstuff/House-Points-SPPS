@@ -79,6 +79,7 @@
     .password-row{display:flex;gap:8px;margin-top:8px}
     .password-row input{flex:1;padding:8px 12px;border-radius:8px;border:1px solid #475569;background:#1e293b;color:#f1f5f9;font-family:'Rajdhani',sans-serif;font-size:1rem}
     .btn-indigo{background:linear-gradient(135deg,#6366f1,#4f46e5)}
+    .btn-survival{background:linear-gradient(135deg,#16a34a,#15803d)}
     .live-screen{min-height:100vh;background:#0f172a;padding:16px;display:flex;flex-direction:column}
     .live-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
     .live-title{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,#10b981,#3b82f6,#f59e0b,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -433,6 +434,7 @@ function App() {
         React.createElement('button', {className:'btn btn-green', onClick:function(){ setScreen('line'); }}, String.fromCodePoint(0x1F4C8)+' Line Graph'),
         React.createElement('a', {className:'btn btn-red', href:'https://robsstuff.github.io/BR/', target:'_blank', rel:'noopener noreferrer'}, String.fromCodePoint(0x2694)+String.fromCodePoint(0xFE0F)+' Battle Royale'),
         React.createElement('a', {className:'btn btn-slate', href:'https://robsstuff.github.io/Winners/', target:'_blank', rel:'noopener noreferrer'}, String.fromCodePoint(0x1F3C5)+' Historical Winners'),
+        React.createElement('a', {className:'btn btn-survival', href:'https://robsstuff.github.io/Survival/', target:'_blank', rel:'noopener noreferrer'}, String.fromCodePoint(0x1F332)+' Survival Mode'),
         React.createElement('button', {className:'btn btn-indigo', style:{gridColumn:'span 2'}, onClick:function(){ setLiveBackPw(false); setLiveBackPwInput(''); setLivePopup(null); livePrevPts.current={}; setScreen('live'); }}, String.fromCodePoint(0x1F4FA)+' Live View')
       ),
       React.createElement('div', {className:'password-row'},
