@@ -318,6 +318,7 @@ function App() {
   var greekPopup = stateGP[0]; var setGreekPopup = stateGP[1];
   var greekPrevPts = useRef({});
   var greekPopupTimer = useRef(null);
+  var ptsRef = useRef({Jackson:0,Fraser:0,Elliot:0,Bradman:0});
   var stateLogF = useState('All');
   var logFilter = stateLogF[0]; var setLogFilter = stateLogF[1];
 
@@ -417,6 +418,9 @@ function App() {
     confetti({ particleCount: 200, spread: 90, origin:{y:0.4}, colors:['#f59e0b','#fbbf24','#fde68a','#ffffff'] });
   }, [newAch]);
 
+  // Keep ptsRef in sync so polling closures always have current value
+  useEffect(function(){ ptsRef.current = pts; });
+
   var ranked = getRanked(pts);
 
   useEffect(function(){
@@ -467,6 +471,10 @@ function App() {
         .then(function(r){ return r.json(); })
         .then(function(d){
           var freshPts = {Jackson:Number(d.Jackson)||0,Fraser:Number(d.Fraser)||0,Elliot:Number(d.Elliot)||0,Bradman:Number(d.Bradman)||0};
+          var freshTotal = (freshPts.Jackson||0)+(freshPts.Fraser||0)+(freshPts.Elliot||0)+(freshPts.Bradman||0);
+          var localTotal = (ptsRef.current.Jackson||0)+(ptsRef.current.Fraser||0)+(ptsRef.current.Elliot||0)+(ptsRef.current.Bradman||0);
+          // Guard: don't overwrite non-zero local state with zeros (sheet may be stale/empty)
+          if(freshTotal === 0 && localTotal > 0) return;
           var hasPrev = Object.keys(livePrevPts.current).length > 0;
           if(hasPrev){
             HOUSES.forEach(function(house){
@@ -496,6 +504,10 @@ function App() {
         .then(function(r){ return r.json(); })
         .then(function(d){
           var freshPts = {Jackson:Number(d.Jackson)||0,Fraser:Number(d.Fraser)||0,Elliot:Number(d.Elliot)||0,Bradman:Number(d.Bradman)||0};
+          var freshTotal = (freshPts.Jackson||0)+(freshPts.Fraser||0)+(freshPts.Elliot||0)+(freshPts.Bradman||0);
+          var localTotal = (ptsRef.current.Jackson||0)+(ptsRef.current.Fraser||0)+(ptsRef.current.Elliot||0)+(ptsRef.current.Bradman||0);
+          // Guard: don't overwrite non-zero local state with zeros (sheet may be stale/empty)
+          if(freshTotal === 0 && localTotal > 0) return;
           var hasPrev = Object.keys(greekPrevPts.current).length > 0;
           if(hasPrev){
             HOUSES.forEach(function(house){
